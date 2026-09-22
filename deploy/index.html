@@ -447,6 +447,24 @@ function shadeDefs(p){
   return '<filter id="'+p+'blur" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="9"/></filter>'
        + '<filter id="'+p+'soft" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="3"/></filter>';
 }
+/* Прядь волос: у корня широкая, к концу сходится в точку.
+   Обычный stroke так не умеет — у него ширина постоянная, поэтому получаются «ленточки». */
+function strandPath(x0,y0,c1x,c1y,c2x,c2y,x1,y1,w0){
+  const dx=x1-x0, dy=y1-y0, L=Math.sqrt(dx*dx+dy*dy)||1;
+  const nx=-dy/L, ny=dx/L, h=w0/2;
+  const ax=(x0+nx*h).toFixed(1), ay=(y0+ny*h).toFixed(1);
+  const bx=(x0-nx*h).toFixed(1), by=(y0-ny*h).toFixed(1);
+  return 'M'+ax+' '+ay+' C'+c1x+' '+c1y+' '+c2x+' '+c2y+' '+x1+' '+y1
+       + ' C'+c2x+' '+c2y+' '+c1x+' '+c1y+' '+bx+' '+by+' Z';
+}
+function strand(x0,y0,c1x,c1y,c2x,c2y,x1,y1,w0,fill,stroke,hi){
+  let g='<path d="'+strandPath(x0,y0,c1x,c1y,c2x,c2y,x1,y1,w0)+'" fill="'+fill+'"';
+  if(stroke) g+=' stroke="'+stroke+'" stroke-width="0.9" stroke-linejoin="round"';
+  g+='/>';
+  if(hi) g+='<path d="M'+x0+' '+y0+' C'+c1x+' '+c1y+' '+c2x+' '+c2y+' '+x1+' '+y1
+    +'" stroke="#FFFFFF" stroke-width="'+hi+'" fill="none" opacity=".5" stroke-linecap="round"/>';
+  return g;
+}
 
 /* =========================================================
    G. ГЕРОИНЯ — ЕДИНОРОЖКА
@@ -457,6 +475,7 @@ function unicornSVG(o){
   const sleeping=(mood==='sleepy');
   const OL='#CFDCF0';              /* обводка: белые формы читаются на белом фоне */
   const OL2='#B9C9E4';
+  const TL='#B9A0E8';              /* обводка прядок */
   let s='';
 
   s+='<defs>'
@@ -485,30 +504,70 @@ function unicornSVG(o){
      +'<stop offset="0" stop-color="#FFFFFF" stop-opacity=".95"/>'
      +'<stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/></radialGradient>'
    +'<radialGradient id="uGlow" cx=".5" cy=".5" r=".5">'
-     +'<stop offset="0" stop-color="#FFF0B8" stop-opacity=".85"/>'
+     +'<stop offset="0" stop-color="#FFF0B8" stop-opacity=".75"/>'
      +'<stop offset="1" stop-color="#FFF0B8" stop-opacity="0"/></radialGradient>'
    +'</defs>';
 
   /* --- тень на земле --- */
-  s+='<ellipse cx="128" cy="215" rx="88" ry="12" fill="#3B4A63" opacity=".16"/>';
-  s+='<ellipse cx="128" cy="215" rx="58" ry="7" fill="#3B4A63" opacity=".11"/>';
+  s+='<ellipse cx="126" cy="215" rx="88" ry="12" fill="#3B4A63" opacity=".16"/>';
+  s+='<ellipse cx="126" cy="215" rx="58" ry="7" fill="#3B4A63" opacity=".11"/>';
 
-  /* --- хвост (за корпусом) --- */
+  /* --- хвост: густая метёлка из прядей, сужаются к концу --- */
+  const tail=[[86,112, 52,118, 34,144, 40,170, 20],
+              [90,120, 56,128, 38,152, 44,182, 23],
+              [92,130, 64,140, 46,160, 54,188, 17],
+              [84,116, 46,124, 26,148, 32,166, 15],
+              [94,124, 74,136, 58,156, 62,190, 12]];
+  tail.forEach((v,i)=>{
+    const col=(i%2)?'url(#uMane2)':'url(#uMane)';
+    s+=strand(v[0],v[1],v[2],v[3],v[4],v[5],v[6],v[7],v[8],col,TL,2);
+  });
+
+  /* --- ноги (обе пары ДО корпуса, иначе их верхние срезы видны на теле) --- */
+  s+='<path d="M92 156 q0 -3 3 -3 h8 q3 0 3 3 l-2 44 h-10 z" fill="#DDE6F6" stroke="'+OL+'" stroke-width="1.3"/>';
+  s+='<rect x="90" y="198" width="16" height="11" rx="4.5" fill="#AFA0CE"/>';
+  s+='<rect x="90" y="198" width="16" height="4" rx="2" fill="#C6B8DE" opacity=".7"/>';
+  s+='<path d="M148 156 q0 -3 3 -3 h8 q3 0 3 3 l-2 44 h-10 z" fill="#DDE6F6" stroke="'+OL+'" stroke-width="1.3"/>';
+  s+='<rect x="146" y="198" width="16" height="11" rx="4.5" fill="#AFA0CE"/>';
+  s+='<rect x="146" y="198" width="16" height="4" rx="2" fill="#C6B8DE" opacity=".7"/>';
+  s+='<path d="M104 154 q0 -3 3 -3 h10 q3 0 3 3 l-3 46 h-10 z" fill="url(#uLeg)" stroke="'+OL+'" stroke-width="1.3"/>';
+  s+='<rect x="103" y="198" width="18" height="11" rx="5" fill="#B9A7D6"/>';
+  s+='<rect x="103" y="198" width="18" height="4" rx="2" fill="#D2C4E8" opacity=".75"/>';
+  s+='<path d="M162 154 q0 -3 3 -3 h10 q3 0 3 3 l-3 46 h-10 z" fill="url(#uLeg)" stroke="'+OL+'" stroke-width="1.3"/>';
+  s+='<rect x="161" y="198" width="18" height="11" rx="5" fill="#B9A7D6"/>';
+  s+='<rect x="161" y="198" width="18" height="4" rx="2" fill="#D2C4E8" opacity=".75"/>';
+  s+='<path d="M110 166 q-1 16 0 30 M168 166 q-1 16 0 30" stroke="'+OL2+'" stroke-width="1.2" fill="none" opacity=".6"/>';
+
+  /* --- грива: рисуется ДО корпуса и шеи, поэтому виден только гребень --- */
+  let m='';
   if(mane==='messy'){
-    s+='<path d="M84 124 C56 134 44 162 50 192 C53 208 62 214 72 210" stroke="url(#uMane)" stroke-width="13" fill="none" stroke-linecap="round"/>';
-    s+='<path d="M86 130 C60 142 50 168 56 194" stroke="#FFFFFF" stroke-width="3.4" fill="none" opacity=".5" stroke-linecap="round"/>';
-    s+='<path d="M82 118 C58 128 48 152 52 176" stroke="url(#uMane2)" stroke-width="4" fill="none" stroke-linecap="round" opacity=".8"/>';
+    const st=[[188,40, 166,58, 146,84, 138,108, 18],[184,46, 160,64, 138,88, 130,110, 16],
+              [190,48, 176,66, 156,88, 148,106, 15],[180,52, 154,70, 132,92, 124,112, 15],
+              [192,42, 184,60, 166,84, 160,104, 13],[186,56, 170,72, 148,94, 140,112, 12]];
+    st.forEach((v,i)=>{
+      const col=(i%2)?'url(#uMane2)':'url(#uMane)';
+      m+=strand(v[0],v[1],v[2],v[3],v[4],v[5],v[6],v[7],v[8],col,TL,1.8);
+    });
+  } else if(mane==='braid'){
+    const st=[[188,42, 174,58, 162,80, 158,104, 15],[184,48, 168,64, 154,86, 148,108, 13]];
+    st.forEach((v,i)=>{ m+=strand(v[0],v[1],v[2],v[3],v[4],v[5],v[6],v[7],v[8],(i?'url(#uMane2)':'url(#uMane)'),TL,1.8); });
+    for(let i=0;i<4;i++){
+      const cx=166-i*4.4, cy=70+i*19, rx=11-i*1, ry=9-i*0.8;
+      m+='<ellipse cx="'+cx+'" cy="'+cy+'" rx="'+rx+'" ry="'+ry+'" fill="url(#uMane)" stroke="'+TL+'" stroke-width="1.2"/>';
+      m+='<path d="M'+(cx-rx*0.6)+' '+cy+' q'+(rx*0.6)+' -4.4 '+(rx*1.2)+' 0" stroke="#FFFFFF" stroke-width="1.6" fill="none" opacity=".6"/>';
+    }
+    m+='<path d="M152 128 q-9 6 -5 15 q8 7 15 -2 q-6 -4 -10 -13z" fill="#F26CA0"/>';
+    m+='<path d="M154 143 q-7 9 0 18 q7 -5 7 -16z" fill="#FF9EC4"/>';
   } else {
-    s+='<path d="M84 122 C50 132 36 164 42 194 C45 210 56 216 68 212" stroke="url(#uMane)" stroke-width="14" fill="none" stroke-linecap="round"/>';
-    s+='<path d="M86 128 C58 140 46 168 52 194" stroke="#FFFFFF" stroke-width="3.8" fill="none" opacity=".55" stroke-linecap="round"/>';
-    s+='<path d="M82 116 C56 126 44 152 48 178" stroke="url(#uMane2)" stroke-width="4.5" fill="none" stroke-linecap="round" opacity=".8"/>';
+    const st=[[188,40, 164,62, 138,94, 130,122, 20],[184,46, 158,68, 132,98, 124,126, 18],
+              [190,48, 174,72, 148,100, 140,126, 17],[180,52, 152,74, 126,102, 118,128, 16],
+              [192,42, 182,66, 160,96, 154,124, 14],[186,56, 168,78, 142,106, 134,132, 13]];
+    st.forEach((v,i)=>{
+      const col=(i%2)?'url(#uMane2)':'url(#uMane)';
+      m+=strand(v[0],v[1],v[2],v[3],v[4],v[5],v[6],v[7],v[8],col,TL,2);
+    });
   }
-
-  /* --- дальние ноги --- */
-  s+='<path d="M92 164 q0 -2 2 -2 h9 q2 0 2 2 l-2 40 h-9 z" fill="#DDE6F6" stroke="'+OL+'" stroke-width="1.3"/>';
-  s+='<rect x="90" y="203" width="14" height="10" rx="4" fill="#AFA0CE"/>';
-  s+='<path d="M148 164 q0 -2 2 -2 h9 q2 0 2 2 l-2 40 h-9 z" fill="#DDE6F6" stroke="'+OL+'" stroke-width="1.3"/>';
-  s+='<rect x="146" y="203" width="14" height="10" rx="4" fill="#AFA0CE"/>';
+  s+='<g>'+m+'</g>';
 
   /* --- корпус --- */
   s+='<ellipse cx="126" cy="152" rx="52" ry="36" fill="url(#uBody)" stroke="'+OL+'" stroke-width="1.7"/>';
@@ -516,51 +575,9 @@ function unicornSVG(o){
   s+='<ellipse cx="110" cy="130" rx="31" ry="14" fill="#FFFFFF" opacity=".8"/>';
   s+='<ellipse cx="126" cy="152" rx="52" ry="36" fill="url(#uRim)"/>';
 
-  /* --- грива: гребень вдоль заднего края шеи (рисуется ДО шеи, поэтому виден только гребень) --- */
-  let m='';
-  if(mane==='messy'){
-    const st=[[180,40,160,74,134,112,12],[176,44,154,80,126,120,10],[184,46,168,80,142,118,9],
-              [172,48,148,86,122,124,9],[186,40,176,76,152,114,8]];
-    st.forEach((v,i)=>{
-      const col=(i%2)?'url(#uMane2)':'url(#uMane)';
-      const d='M'+v[0]+' '+v[1]+' C'+v[2]+' '+v[3]+' '+v[4]+' '+v[5]+' '+(v[4]-9)+' '+(v[5]+10);
-      m+='<path d="'+d+'" stroke="'+col+'" stroke-width="'+v[6]+'" fill="none" stroke-linecap="round"/>';
-      m+='<path d="'+d+'" stroke="#FFFFFF" stroke-width="1.8" fill="none" opacity=".5" stroke-linecap="round"/>';
-    });
-    m+='<path d="M190 40 C180 34 170 38 166 48 C174 40 184 38 190 40 Z" fill="url(#uMane2)"/>';
-  } else if(mane==='braid'){
-    m+='<path d="M186 42 C176 42 168 50 166 62 C176 54 182 50 188 48 Z" fill="url(#uMane)"/>';
-    m+='<path d="M170 58 C158 76 152 98 152 122" stroke="url(#uMane)" stroke-width="12" fill="none" stroke-linecap="round"/>';
-    for(let i=0;i<4;i++){
-      const cx=168-i*4.6, cy=72+i*19, rx=11-i*1, ry=9-i*0.8;
-      m+='<ellipse cx="'+cx+'" cy="'+cy+'" rx="'+rx+'" ry="'+ry+'" fill="url(#uMane)" stroke="#B49CE8" stroke-width="1.2"/>';
-      m+='<path d="M'+(cx-rx*0.6)+' '+cy+' q'+(rx*0.6)+' -4.4 '+(rx*1.2)+' 0" stroke="#FFFFFF" stroke-width="1.6" fill="none" opacity=".6"/>';
-    }
-    m+='<path d="M154 130 q-9 6 -5 15 q8 7 15 -2 q-6 -4 -10 -13z" fill="#F26CA0"/>';
-    m+='<path d="M156 145 q-7 9 0 18 q7 -5 7 -16z" fill="#FF9EC4"/>';
-  } else {
-    const st=[[179,38,158,74,130,116,13],[176,44,152,82,124,124,11],[184,46,168,82,144,120,10],
-              [172,50,146,88,120,128,9],[187,42,178,78,154,118,8]];
-    st.forEach((v,i)=>{
-      const col=(i%2)?'url(#uMane2)':'url(#uMane)';
-      const d='M'+v[0]+' '+v[1]+' C'+v[2]+' '+v[3]+' '+v[4]+' '+v[5]+' '+(v[4]-10)+' '+(v[5]+9);
-      m+='<path d="'+d+'" stroke="'+col+'" stroke-width="'+v[6]+'" fill="none" stroke-linecap="round"/>';
-      m+='<path d="'+d+'" stroke="#FFFFFF" stroke-width="2" fill="none" opacity=".55" stroke-linecap="round"/>';
-    });
-    m+='<path d="M192 38 C182 32 172 36 168 46 C176 38 186 36 192 38 Z" fill="url(#uMane2)"/>';
-  }
-  s+='<g>'+m+'</g>';
-
   /* --- шея --- */
   s+='<path d="M150 128 C152 104 164 86 182 74 L208 92 C190 106 180 124 178 148 Z" fill="url(#uNeck)" stroke="'+OL+'" stroke-width="1.7"/>';
   s+='<path d="M156 126 C158 104 168 88 182 78 L191 85 C178 96 168 110 166 130 Z" fill="#FFFFFF" opacity=".55"/>';
-
-  /* --- ближние ноги --- */
-  s+='<path d="M104 164 q0 -2 2 -2 h11 q2 0 2 2 l-3 40 h-9 z" fill="url(#uLeg)" stroke="'+OL+'" stroke-width="1.3"/>';
-  s+='<rect x="103" y="203" width="15" height="10" rx="4" fill="#B9A7D6"/>';
-  s+='<path d="M162 164 q0 -2 2 -2 h11 q2 0 2 2 l-3 40 h-9 z" fill="url(#uLeg)" stroke="'+OL+'" stroke-width="1.3"/>';
-  s+='<rect x="161" y="203" width="15" height="10" rx="4" fill="#B9A7D6"/>';
-  s+='<path d="M108 172 q-1 14 0 26 M166 172 q-1 14 0 26" stroke="'+OL2+'" stroke-width="1.2" fill="none" opacity=".7"/>';
 
   /* --- голова --- */
   s+='<g transform="rotate(12 194 72)">';
@@ -568,54 +585,52 @@ function unicornSVG(o){
   s+='<ellipse cx="186" cy="62" rx="20" ry="13" fill="#FFFFFF" opacity=".8"/>';
   s+='</g>';
   /* морда */
-  s+='<ellipse cx="224" cy="88" rx="19" ry="15" fill="url(#uMuzzle)" stroke="'+OL+'" stroke-width="1.4"/>';
-  s+='<ellipse cx="220" cy="84" rx="10" ry="6.5" fill="#FFFFFF" opacity=".55"/>';
-  s+='<ellipse cx="234" cy="82" rx="3" ry="3.8" fill="#C6B4D8"/>';
-  s+='<ellipse cx="234" cy="81" rx="1.2" ry="1.5" fill="#9E8CB4"/>';
+  s+='<ellipse cx="222" cy="88" rx="16.5" ry="13.5" fill="url(#uMuzzle)" stroke="'+OL+'" stroke-width="1.4"/>';
+  s+='<ellipse cx="219" cy="84" rx="9" ry="6" fill="#FFFFFF" opacity=".55"/>';
+  s+='<ellipse cx="231" cy="83" rx="2.8" ry="3.6" fill="#C6B4D8"/>';
+  s+='<ellipse cx="231" cy="82" rx="1.1" ry="1.4" fill="#9E8CB4"/>';
   /* рот */
-  if(mood==='hungry')      s+='<path d="M218 97 q7 9 14 1 q-4 10 -10 9 q-5 -1 -4 -10z" fill="#E77C9B"/>';
-  else if(sleeping)        s+='<path d="M219 97 q6 3 12 0" stroke="#C08FA8" stroke-width="2.2" fill="none" stroke-linecap="round"/>';
-  else                     s+='<path d="M217 95 q8 7 15 -1" stroke="#C08FA8" stroke-width="2.4" fill="none" stroke-linecap="round"/>';
+  if(mood==='hungry')      s+='<path d="M217 95 q7 9 14 1 q-4 10 -10 9 q-5 -1 -4 -10z" fill="#E77C9B"/>';
+  else if(sleeping)        s+='<path d="M218 95 q6 3 12 0" stroke="#C08FA8" stroke-width="2.2" fill="none" stroke-linecap="round"/>';
+  else                     s+='<path d="M216 93 q8 7 15 -1" stroke="#C08FA8" stroke-width="2.4" fill="none" stroke-linecap="round"/>';
   /* румянец */
-  s+='<ellipse cx="203" cy="91" rx="8" ry="5" fill="#FFAFCB" opacity=".45"/>';
-  s+='<ellipse cx="240" cy="98" rx="5.4" ry="3.4" fill="#FFAFCB" opacity=".4"/>';
+  s+='<ellipse cx="204" cy="91" rx="7.5" ry="4.6" fill="#FFAFCB" opacity=".42"/>';
+  s+='<ellipse cx="238" cy="97" rx="5" ry="3.2" fill="#FFAFCB" opacity=".38"/>';
 
   /* --- ухо --- */
   s+='<path d="M176 58 C169 30 173 17 184 15 C192 25 190 46 185 60 Z" fill="url(#uBody)" stroke="'+OL+'" stroke-width="1.5"/>';
   s+='<path d="M178 55 C173 33 176 22 183 21 C187 29 186 44 182 57 Z" fill="#FFC9DE"/>';
 
-  /* --- рог --- */
-  s+='<circle cx="203" cy="24" r="27" fill="url(#uGlow)"/>';
-  s+='<path d="M193 50 L202 9 L208 50 Z" fill="url(#uHorn)" stroke="#D89A22" stroke-width="1.2"/>';
-  s+='<path d="M195 41 q5.4 -2.6 10 -0.8 M196.6 32 q4.6 -2.6 9 -0.8 M198.2 23 q4 -2.4 8 -0.8 M199.8 14 q3.2 -1.8 6.2 -0.6" stroke="#D89A22" stroke-width="1.4" fill="none" opacity=".85"/>';
-  s+='<path d="M198 13 L194.5 47" stroke="#FFF8DF" stroke-width="1.7" opacity=".9"/>';
+  /* --- рог: тонкий, со спиральными насечками --- */
+  s+='<circle cx="201" cy="24" r="20" fill="url(#uGlow)"/>';
+  s+='<path d="M194 50 L202 10 L207 50 Z" fill="url(#uHorn)" stroke="#D89A22" stroke-width="1.1"/>';
+  s+='<path d="M195.6 41 q5 -2.6 9.4 -1 M197.4 31 q4.4 -2.4 8.4 -0.9 M199.2 21 q3.6 -2 6.8 -0.7" stroke="#D89A22" stroke-width="1.2" fill="none" opacity=".55"/>';
+  s+='<path d="M198.6 14 L195.2 47" stroke="#FFF8DF" stroke-width="1.6" opacity=".85"/>';
 
-  /* --- чёлка (поверх головы) --- */
-  s+='<path d="M186 46 C192 54 197 61 202 67" stroke="url(#uMane2)" stroke-width="7" fill="none" stroke-linecap="round"/>';
-  s+='<path d="M186 46 C192 54 197 61 202 67" stroke="#FFFFFF" stroke-width="2" fill="none" opacity=".5" stroke-linecap="round"/>';
-  s+='<path d="M182 44 C186 52 189 58 192 63" stroke="url(#uMane)" stroke-width="5" fill="none" stroke-linecap="round" opacity=".9"/>';
-
+  /* --- чёлка поверх головы --- */
+  s+=strand(184,44, 192,54, 198,62, 203,68, 9, 'url(#uMane2)', TL, 1.8);
+  s+=strand(180,46, 186,54, 190,60, 193,65, 7, 'url(#uMane)', TL, 1.5);
 
   /* --- глаз (один, вид сбоку) --- */
   if(sleeping){
-    s+='<path d="M197 68 q9 8 18 0" stroke="#3B4A63" stroke-width="3.4" fill="none" stroke-linecap="round"/>';
-    s+='<path d="M194 62 q8 -5 15 -2" stroke="#3B4A63" stroke-width="2" fill="none" stroke-linecap="round" opacity=".45"/>';
+    s+='<path d="M195 68 q9 8 18 0" stroke="#3B4A63" stroke-width="3.4" fill="none" stroke-linecap="round"/>';
+    s+='<path d="M192 62 q8 -5 15 -2" stroke="#3B4A63" stroke-width="2" fill="none" stroke-linecap="round" opacity=".45"/>';
   } else if(mood==='happy'){
-    s+='<path d="M196 70 q10 -12 20 0" stroke="#3B4A63" stroke-width="4" fill="none" stroke-linecap="round"/>';
-    s+='<path d="M195 74 q10 -3 21 0" stroke="#3B4A63" stroke-width="1.6" fill="none" stroke-linecap="round" opacity=".35"/>';
+    s+='<path d="M194 70 q10 -12 20 0" stroke="#3B4A63" stroke-width="4" fill="none" stroke-linecap="round"/>';
+    s+='<path d="M193 74 q10 -3 21 0" stroke="#3B4A63" stroke-width="1.6" fill="none" stroke-linecap="round" opacity=".35"/>';
   } else {
-    s+='<ellipse cx="205" cy="69" rx="10.5" ry="11.5" fill="#FFFFFF" stroke="'+OL2+'" stroke-width="1.2"/>';
-    s+='<circle cx="206" cy="70" r="7.2" fill="url(#uIris)"/>';
-    s+='<circle cx="206" cy="70" r="3.2" fill="#1B2440"/>';
-    s+='<circle cx="203.4" cy="66.4" r="2.5" fill="#FFFFFF"/>';
-    s+='<circle cx="209.6" cy="73.6" r="1.4" fill="#FFFFFF" opacity=".85"/>';
-    s+='<path d="M195 59 q11 -5 21 1" stroke="#3B4A63" stroke-width="2.6" fill="none" stroke-linecap="round"/>';
-    s+='<path d="M195.5 61.5 l-4 -3 M199.5 59.4 l-2 -4 M213 60.6 l3 -3.4" stroke="#3B4A63" stroke-width="2" stroke-linecap="round"/>';
+    s+='<ellipse cx="203" cy="70" rx="10.5" ry="11.5" fill="#FFFFFF" stroke="'+OL2+'" stroke-width="1.2"/>';
+    s+='<circle cx="204" cy="71" r="7.2" fill="url(#uIris)"/>';
+    s+='<circle cx="204" cy="71" r="3.2" fill="#1B2440"/>';
+    s+='<circle cx="201.4" cy="67.4" r="2.5" fill="#FFFFFF"/>';
+    s+='<circle cx="207.6" cy="74.6" r="1.4" fill="#FFFFFF" opacity=".85"/>';
+    s+='<path d="M193 60 q11 -5 21 1" stroke="#3B4A63" stroke-width="2.1" fill="none" stroke-linecap="round"/>';
+    s+='<path d="M193.5 62 l-4 -2.6 M197.5 60 l-2 -3.6 M211 61 l3 -3" stroke="#3B4A63" stroke-width="1.8" stroke-linecap="round"/>';
   }
 
   /* --- украшения в гриве --- */
   acc.forEach((a,i)=>{
-    const ax=170-i*10, ay=114+i*13;
+    const ax=168-i*10, ay=112+i*13;
     if(ACC_DRAW[a]) s+=ACC_DRAW[a](ax,ay);
   });
 
@@ -625,8 +640,8 @@ function unicornSVG(o){
      +'<ellipse cx="106" cy="152" rx="16" ry="10" fill="#A8865C" opacity=".5" transform="rotate(-12 106 152)"/>'
      +'<ellipse cx="140" cy="166" rx="12" ry="8" fill="#9C7A50" opacity=".45"/>'
      +'<ellipse cx="186" cy="116" rx="10" ry="7" fill="#9C7A50" opacity=".45"/>'
-     +'<ellipse cx="110" cy="188" rx="9" ry="6.5" fill="#8F6F49" opacity=".5"/>'
-     +'<ellipse cx="168" cy="186" rx="8" ry="6" fill="#9C7A50" opacity=".45"/>'
+     +'<ellipse cx="110" cy="186" rx="9" ry="6.5" fill="#8F6F49" opacity=".5"/>'
+     +'<ellipse cx="170" cy="184" rx="8" ry="6" fill="#9C7A50" opacity=".45"/>'
      +'<ellipse cx="224" cy="94" rx="7" ry="5" fill="#A8865C" opacity=".4"/>'
      +'<circle cx="116" cy="146" r="2.4" fill="#7C5F3C" opacity=".45"/>'
      +'<circle cx="150" cy="170" r="2" fill="#7C5F3C" opacity=".45"/>'
