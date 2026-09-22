@@ -120,6 +120,9 @@ h2{font-size:clamp(19px,3.4vw,28px);margin:2px 0 10px;text-align:center}
 .accBtn.sel{outline:4px solid var(--sun);transform:translateY(-4px)}
 .friend{width:150px;height:150px}
 .friend svg{width:100%;height:100%;display:block}
+.fbub{position:absolute;left:50%;top:-10px;transform:translateX(-50%);background:#fff;border-radius:16px;
+  padding:7px 12px;font-size:14px;font-weight:700;box-shadow:var(--sh);max-width:180px;text-align:center;
+  z-index:4;animation:fadeIn .3s ease;line-height:1.25}
 .bowl{display:flex;gap:26px;justify-content:center;align-items:flex-end;flex-wrap:wrap;margin-top:6px}
 
 /* ---------- награда ---------- */
@@ -258,23 +261,41 @@ const A = {
 };
 
 /* =========================================================
-   C. ОЗВУЧКА (Web Speech API)
+   C. ОЗВУЧКА (Web Speech API) — у каждого героя свой голос
    ========================================================= */
+/* p — высота голоса, r — скорость речи, v — какой по счёту ru-голос брать */
+const VOICES = {
+  narr:{ p:1.02, r:0.90, v:0 },   /* рассказчик */
+  uni :{ p:1.45, r:0.95, v:1 },   /* единорожка */
+  bun :{ p:1.72, r:1.07, v:2 },   /* зайчонок Пушок */
+  bir :{ p:2.05, r:1.18, v:3 },   /* птичка Синичка */
+  but :{ p:1.88, r:1.02, v:1 }    /* бабочка */
+};
 const TTS = {
-  on:true, voice:null, ready:false,
+  on:true, ru:[], ready:false,
   init(){ try{
     if(!('speechSynthesis' in window)) return;
-    const load=()=>{ const vs=window.speechSynthesis.getVoices()||[];
-      this.voice = vs.filter(v=>/ru/i.test(v.lang))[0] || null; this.ready=!!vs.length; };
+    const load=()=>{
+      const vs=(window.speechSynthesis.getVoices()||[]);
+      this.ru=vs.filter(v=>/^ru/i.test(v.lang)||/russian|русск/i.test(v.name));
+      this.ready=this.ru.length>0;
+    };
     load(); window.speechSynthesis.onvoiceschanged=load;
   }catch(e){} },
-  say(text,onend){
+  voiceFor(tag){
+    if(!this.ru.length) return null;
+    const cfg=VOICES[tag]||VOICES.uni;
+    return this.ru[cfg.v % this.ru.length] || this.ru[0];
+  },
+  say(text,onend,who){
     if(!S.settings.voice||!('speechSynthesis' in window)){ if(onend) setTimeout(onend,600); return; }
+    const cfg=VOICES[who]||VOICES.uni;
     try{
       window.speechSynthesis.cancel();
-      const u=new SpeechSynthesisUtterance(String(text).replace(/[🎵🎉💧✨🌙]/g,''));
-      u.lang='ru-RU'; if(this.voice) u.voice=this.voice;
-      u.rate=0.94; u.pitch=1.3;
+      const u=new SpeechSynthesisUtterance(String(text).replace(/[🎵🎉💧✨🌙🫧🎆💖🥕🌾]/g,''));
+      u.lang='ru-RU';
+      const v=this.voiceFor(who); if(v) u.voice=v;
+      u.rate=cfg.r; u.pitch=cfg.p;
       if(onend) u.onend=onend;
       window.speechSynthesis.speak(u);
     }catch(e){ if(onend) setTimeout(onend,600); }
@@ -595,11 +616,7 @@ function unicornSVG(o){
   /* --- украшения в гриве --- */
   acc.forEach((a,i)=>{
     const ax=170-i*10, ay=114+i*13;
-    if(a==='bow')    s+=accBow(ax,ay);
-    if(a==='flower') s+=accFlower(ax,ay);
-    if(a==='star')   s+=accStar(ax,ay);
-    if(a==='bell')   s+=accBell(ax,ay);
-    if(a==='heart')  s+=accHeart(ax,ay);
+    if(ACC_DRAW[a]) s+=ACC_DRAW[a](ax,ay);
   });
 
   /* --- грязь --- */
@@ -662,6 +679,37 @@ function accBell(x,y){
 function accHeart(x,y){
   return '<g transform="translate('+x+','+y+')"><path d="M0 8 q-11 -8 -11 -15 q0 -6 5.5 -6 q3.5 0 5.5 3.6 q2 -3.6 5.5 -3.6 q5.5 0 5.5 6 q0 7 -11 15z" fill="#FF8FBB" stroke="#E8608F" stroke-width="1"/><circle cx="-3.4" cy="-8" r="1.6" fill="#FFE3F1"/></g>';
 }
+function accCrown(x,y){
+  return '<g transform="translate('+x+','+y+')">'
+    +'<path d="M-12 6 L-12 -6 L-5 0 L0 -9 L5 0 L12 -6 L12 6 Z" fill="#FFD86A" stroke="#E0A32E" stroke-width="1.2"/>'
+    +'<rect x="-12.6" y="5" width="25.2" height="4.6" rx="2.3" fill="#E0A32E"/>'
+    +'<circle cx="0" cy="-9.5" r="2.7" fill="#FF8FBB" stroke="#E8608F" stroke-width="0.8"/>'
+    +'<circle cx="-12" cy="-6.5" r="2.1" fill="#8FD2FF" stroke="#5FB0E0" stroke-width="0.7"/>'
+    +'<circle cx="12" cy="-6.5" r="2.1" fill="#8FD2FF" stroke="#5FB0E0" stroke-width="0.7"/>'
+    +'<circle cx="-6" cy="1.5" r="1.5" fill="#FFF6D8" opacity=".9"/>'
+    +'</g>';
+}
+function accRibbon(x,y){
+  return '<g transform="translate('+x+','+y+')">'
+    +'<path d="M-13 2 q7 -12 13 -3 q6 -9 13 3" stroke="#FF8FBB" stroke-width="4.6" fill="none" stroke-linecap="round"/>'
+    +'<path d="M-13 2 q7 -12 13 -3" stroke="#FFD86A" stroke-width="2.2" fill="none" stroke-linecap="round"/>'
+    +'<path d="M0 -1 q6 -9 13 3" stroke="#8FD2FF" stroke-width="2.2" fill="none" stroke-linecap="round"/>'
+    +'<path d="M-13 3.4 q13 8 26 0" stroke="#C9B6FF" stroke-width="2.6" fill="none" stroke-linecap="round"/>'
+    +'</g>';
+}
+function accPearl(x,y){
+  let p='<g transform="translate('+x+','+y+')">';
+  [[-9,3],[-3,-2],[3,-3],[9,2]].forEach(q=>{
+    p+='<circle cx="'+q[0]+'" cy="'+q[1]+'" r="3.4" fill="#FFF6E8" stroke="#D9C7A8" stroke-width="0.9"/>'
+      +'<circle cx="'+(q[0]-1)+'" cy="'+(q[1]-1)+'" r="1.2" fill="#FFFFFF"/>';
+  });
+  return p+'</g>';
+}
+const ACC_DRAW={ bow:accBow, flower:accFlower, star:accStar, bell:accBell, heart:accHeart,
+                 crown:accCrown, ribbon:accRibbon, pearl:accPearl };
+const ACC_LIST=[ {k:'bow',t:'Бантик'}, {k:'flower',t:'Цветок'}, {k:'star',t:'Звёздочка'},
+                 {k:'bell',t:'Колокольчик'}, {k:'heart',t:'Сердечко'},
+                 {k:'crown',t:'Корона'}, {k:'ribbon',t:'Ленточка'}, {k:'pearl',t:'Бусинки'} ];
 
 /* =========================================================
    H. ДРУЗЬЯ
@@ -1378,7 +1426,7 @@ const SCREENS = [
         box.classList.remove('happy'); void box.offsetWidth; box.classList.add('happy');
         bar.replaceWith(bar=starBar(need,n));
         hint.textContent = fin ? 'Ура! Она тебя узнала и говорит: «Я Радужка!»' : 'Осталось погладить: '+(need-n);
-        if(fin){ TTS.say('Привет! Я Радужка. Давай дружить!'); setTimeout(done,1600); }
+        if(fin){ TTS.say('Привет! Я Радужка. Давай дружить!',null,'uni'); setTimeout(done,1600); }
       };
       root.appendChild(box); root.appendChild(bar); root.appendChild(hint);
     } },
@@ -1417,7 +1465,7 @@ const SCREENS = [
             if(fed>=need){
               lock=true;
               hint.textContent='Радужка наелась! Спасибо!';
-              TTS.say('Спасибо! Я наелась!');
+              TTS.say('Спасибо! Я наелась!',null,'uni');
               setTimeout(done,1600);
             } else hint.textContent='Ещё '+numWord(need-fed,['угощение','угощения','угощений'])+' — и она наестся';
           } else {
@@ -1463,7 +1511,7 @@ const SCREENS = [
         redrawPet(box,petOpts({mood:'happy',dirt:false,hearts:true}));
         btn.disabled=true; btn.textContent='Чистенькая! ✨';
         hint.textContent='Радужка чистенькая и блестит!';
-        TTS.say('Ой, как чисто! Спасибо!');
+        TTS.say('Ой, как чисто! Спасибо!',null,'uni');
         setTimeout(done,1700);
       };
       root.appendChild(box); root.appendChild(hint); root.appendChild(row);
@@ -1499,7 +1547,7 @@ const SCREENS = [
         const c=centerOf(box); burst(c.x,c.y-30,'🎀',10);
         btn.disabled=true; btn.textContent='Косичка готова! 🎀';
         hint.textContent='Какая красивая косичка с бантиком!';
-        TTS.say('Какая красивая косичка!');
+        TTS.say('Какая красивая косичка!',null,'uni');
         setTimeout(done,1700);
       };
       root.appendChild(box); root.appendChild(hint); root.appendChild(row);
@@ -1532,7 +1580,7 @@ const SCREENS = [
           if(step<path.length) dots[step].classList.add('next');
           hint.textContent = step<path.length ? 'Дальше — точка '+(step+1)+' из '+path.length : 'Дошли до полянки!';
           if(step>=path.length){
-            A.sfx('star'); TTS.say('Ух ты, какая прогулка!');
+            A.sfx('star'); TTS.say('Ух ты, какая прогулка!',null,'uni');
             setTimeout(done,1500);
           }
         };
@@ -1548,9 +1596,8 @@ const SCREENS = [
     intro:'Давай украсим гриву Радужки! Выбери три украшения.',
     mount(root,done){
       const need=3; let acc=[];
-      const all=[{k:'bow',t:'Бантик'},{k:'flower',t:'Цветок'},{k:'star',t:'Звёздочка'},
-                 {k:'bell',t:'Колокольчик'},{k:'heart',t:'Сердечко'}];
-      root.appendChild(head('Украшаем гриву','Выбери '+need+' украшения'));
+      const all=ACC_LIST;
+      root.appendChild(head('Украшаем гриву','Выбери '+need+' украшения из '+all.length));
       const box=petBox(petOpts({mood:'calm',dirt:false,acc:[]}),false);
       let bar=starBar(need,0);
       const hint=el('p','sub','Выбрано: 0 из '+need);
@@ -1560,10 +1607,7 @@ const SCREENS = [
       const drawAcc=()=>redrawPet(box,petOpts({mood:'happy',dirt:false,acc:acc}));
       all.forEach(a=>{
         const b=el('button','accBtn');
-        b.innerHTML='<svg viewBox="0 0 40 40">'+(
-            a.k==='bow'?accBow(20,22): a.k==='flower'?accFlower(20,22):
-            a.k==='star'?accStar(20,22): a.k==='bell'?accBell(20,22): accHeart(20,22)
-          )+'</svg><span>'+a.t+'</span>';
+        b.innerHTML='<svg viewBox="0 0 40 40">'+ACC_DRAW[a.k](20,22)+'</svg><span>'+a.t+'</span>';
         b.onclick=()=>{
           const i=acc.indexOf(a.k);
           if(i>=0){ acc.splice(i,1); b.classList.remove('sel'); }
@@ -1587,7 +1631,7 @@ const SCREENS = [
         drawAcc();
         btn.disabled=true; btn.textContent='Красота! ✨';
         hint.textContent='Радужка нарядная и очень довольна!';
-        TTS.say('Какая я нарядная! Спасибо!');
+        TTS.say('Какая я нарядная! Спасибо!',null,'uni');
         setTimeout(done,1700);
       };
       root.appendChild(box); root.appendChild(bar); root.appendChild(pickRow); root.appendChild(hint); root.appendChild(row);
@@ -1595,12 +1639,16 @@ const SCREENS = [
 
   /* ---------- 7. ИГРЫ ---------- */
   { id:7, scene:'dandelion', title:'Игры',
-    intro:'Радужка хочет поиграть. Полопай мыльные пузыри!',
+    intro:'Я бабочка Крапинка! Полопай мыльные пузыри вместе с нами!',
+    introWho:'but',
     mount(root,done){
       const N=8; let left=N;
       root.appendChild(head('Мыльные пузыри','Нажми на все пузыри — '+N+' штук'));
+      const helper=el('div','');
+      helper.style.cssText='width:min(22vw,104px);margin:0 auto 2px;animation:bob 3s ease-in-out infinite';
+      helper.innerHTML=svgWrap(butterflySVG(),'0 0 160 160');
       const area=el('div','');
-      area.style.cssText='position:relative;width:100%;max-width:820px;height:min(52vh,420px);margin:0 auto';
+      area.style.cssText='position:relative;width:100%;max-width:820px;height:min(46vh,360px);margin:0 auto';
       const hint=el('p','sub','Осталось пузырей: '+left);
       const pos=[[10,18],[26,44],[40,12],[54,38],[68,16],[82,42],[20,70],[62,68]];
       pos.forEach((p,i)=>{
@@ -1613,11 +1661,16 @@ const SCREENS = [
           b.classList.add('gone'); left--; A.sfx('pop');
           const c=centerOf(b); burst(c.x,c.y,'🫧',7);
           hint.textContent = left ? 'Осталось пузырей: '+left : 'Все пузыри лопнули! Ура!';
-          if(!left){ A.sfx('star'); TTS.say('Как весело! Спасибо!'); setTimeout(done,1500); }
+          if(!left){
+            A.sfx('star');
+            TTS.say('Ух ты, все пузыри лопнули! Как весело!',null,'but');
+            setTimeout(()=>{ TTS.say('Как весело! Спасибо!',null,'uni'); }, 2400);
+            setTimeout(done, 3600);
+          }
         };
         area.appendChild(b);
       });
-      root.appendChild(area); root.appendChild(hint);
+      root.appendChild(helper); root.appendChild(area); root.appendChild(hint);
     } },
 
   /* ---------- 8. СОН ---------- */
@@ -1663,7 +1716,7 @@ const SCREENS = [
               const c=centerOf(s); burst(c.x,c.y,'🌟',4);
               if(n>=5){
                 A.sfx('star');
-                TTS.say('Баю-бай, Радужка. Сладких снов!');
+                TTS.say('Баю-бай, Радужка. Сладких снов!',null,'narr');
                 hint.textContent='Тс-с-с… Радужка уснула. Сладких снов!';
                 setTimeout(done,2100);
               }
@@ -1679,28 +1732,36 @@ const SCREENS = [
   { id:9, scene:'burrow', title:'Друзья',
     intro:'На опушке живут друзья: зайчонок Пушок и птичка Синичка. Покорми их!',
     mount(root,done){
-      let fedBun=0, fedBird=0;
+      let fedBun=0, fedBird=0, finished=false;
       root.appendChild(head('Лесные друзья','Покорми зайчонка и птичку'));
       const rowF=el('div','bowl');
       const bun=el('div','friend');
       const bird=el('div','friend');
       bun.innerHTML=svgWrap(bunnySVG({}),'0 0 160 160');
       bird.innerHTML=svgWrap(birdSVG(),'0 0 160 160');
-      const c1=el('div',''); c1.style.cssText='text-align:center';
+      const c1=el('div',''); c1.style.cssText='text-align:center;position:relative;padding-top:26px';
       c1.appendChild(bun); c1.appendChild(el('div','sub','Пушок'));
-      const c2=el('div',''); c2.style.cssText='text-align:center';
+      const c2=el('div',''); c2.style.cssText='text-align:center;position:relative;padding-top:26px';
       c2.appendChild(bird); c2.appendChild(el('div','sub','Синичка'));
       rowF.appendChild(c1); rowF.appendChild(c2);
       const btnRow=el('div','btnRow');
       const bB=el('button','btn ghost'); bB.innerHTML=icon('carrot',30)+'<span>Морковка Пушку</span>';
       const bP=el('button','btn ghost'); bP.innerHTML=icon('hay',30)+'<span>Зёрнышки Синичке</span>';
       const hint=el('p','sub','Накорми обоих друзей');
+      const friendSay=(box,text,who,ms)=>{
+        const old=box.querySelector('.fbub'); if(old) old.remove();
+        box.appendChild(el('div','fbub',text));
+        TTS.say(text,null,who);
+        setTimeout(()=>{ const b=box.querySelector('.fbub'); if(b) b.remove(); }, ms||2800);
+      };
       const check=()=>{
+        if(finished) return;
         if(fedBun&&fedBird){
+          finished=true;
           A.sfx('star'); confetti();
-          hint.textContent='Все сыты и довольны! Радужка рада новым друзьям!';
-          TTS.say('Спасибо! Теперь у нас есть друзья!');
-          setTimeout(done,1900);
+          hint.textContent='Все сыты и довольны! Единорожка рада новым друзьям!';
+          setTimeout(()=>TTS.say('Спасибо! Теперь у нас есть друзья!',null,'uni'), 2600);
+          setTimeout(done, 3800);
         }
       };
       bB.onclick=()=>{
@@ -1709,14 +1770,16 @@ const SCREENS = [
         bun.classList.remove('happy'); void bun.offsetWidth; bun.classList.add('happy');
         const c=centerOf(bun); burst(c.x,c.y,'🥕',7);
         bB.disabled=true; bB.textContent='Пушок наелся 🥕';
-        check();
+        friendSay(c1,'Спасибо! Я зайчонок Пушок. Морковка — моя любимая!','bun',3200);
+        setTimeout(check, 3400);
       };
       bP.onclick=()=>{
         if(fedBird) return; fedBird=1; A.sfx('good');
         const c=centerOf(bird); burst(c.x,c.y,'🌾',7);
         bird.classList.remove('happy'); void bird.offsetWidth; bird.classList.add('happy');
         bP.disabled=true; bP.textContent='Синичка наелась 🌾';
-        check();
+        friendSay(c2,'Чив-чив! Спасибо! Зёрнышки очень вкусные!','bir',3200);
+        setTimeout(check, 3400);
       };
       btnRow.appendChild(bB); btnRow.appendChild(bP);
       root.appendChild(rowF); root.appendChild(hint); root.appendChild(btnRow);
@@ -1738,7 +1801,7 @@ const SCREENS = [
         +'<div class="bigStar">🏅</div>'
         +'<h2>Диплом заботы</h2>'
         +'<p class="sub" style="margin-bottom:6px">За то, что накормил, вымыл, расчесал, погулял, украсил и уложил спать единорожку Радужку.</p>'
-        +'<div class="stat" style="font-size:17px">Экранов пройдено: 10 из 10<br>Друзей найдено: 3<br>Звёзд собрано: 10</div>'
+        +'<div class="stat" style="font-size:17px">Экранов пройдено: 10 из 10<br>Друзей найдено: 4<br>Звёзд собрано: 10</div>'
         +'</div>';
       b.onclick=()=>{
         A.sfx('click'); fireworks(); confetti();
@@ -1746,7 +1809,7 @@ const SCREENS = [
         b.disabled=true; b.textContent='Ура! 🎉';
         card.style.display='block';
         hint.textContent='Сказка пройдена! Ты настоящий друг единорожки 💖';
-        TTS.say('Ура! Ты позаботился обо мне. Спасибо, дружок!');
+        TTS.say('Ура! Ты позаботился обо мне. Спасибо, дружок!',null,'uni');
         setTimeout(done,3200);
       };
       root.appendChild(box); root.appendChild(hint); root.appendChild(row); root.appendChild(card);
@@ -1777,7 +1840,7 @@ function updateTop(){
   $('#progText').textContent = S.done.length+' / 10 экранов';
   $('#btnMusic').classList.toggle('off',!S.settings.music);
   $('#btnVoice').classList.toggle('off',!S.settings.voice);
-  $('#menuStats').textContent='Пройдено экранов: '+S.done.length+' из 10  •  Друзей: 3  •  Радужка '+(S.clean?'чистая':'чумазая');
+  $('#menuStats').textContent='Пройдено экранов: '+S.done.length+' из 10  •  Друзей: 4  •  Единорожка '+(S.clean?'чистая':'чумазая');
 }
 function renderFinal(){
   setScene('party');
@@ -1790,7 +1853,7 @@ function renderFinal(){
   const card=el('div','card');
   card.innerHTML='<div style="text-align:center"><div class="bigStar">🏅</div>'
     +'<h2>Диплом заботы</h2>'
-    +'<div class="stat" style="font-size:17px">Экранов пройдено: 10 из 10<br>Друзей: зайчонок Пушок и птичка Синичка<br>Звёзд собрано: 10</div></div>';
+    +'<div class="stat" style="font-size:17px">Экранов пройдено: 10 из 10<br>Друзей: зайчонок Пушок, птичка Синичка и бабочка Крапинка<br>Звёзд собрано: 10</div></div>';
   const row=el('div','btnRow');
   const b1=el('button','btn primary','🎆 Ещё салют!');
   const b2=el('button','btn ghost','↺ Начать сказку заново');
@@ -1800,7 +1863,7 @@ function renderFinal(){
   sec.appendChild(box); sec.appendChild(card); sec.appendChild(row);
   stage.appendChild(sec);
   A.sfx('win'); confetti();
-  TTS.say('Ура! Ты прошёл всю сказку и позаботился обо мне. Ты настоящий друг!');
+  TTS.say('Ура! Ты прошёл всю сказку и позаботился обо мне. Ты настоящий друг!',null,'uni');
 }
 function render(){
   const stage=$('#stage'); stage.innerHTML='';
@@ -1813,7 +1876,7 @@ function render(){
   const sec=el('section','screen active');
   stage.appendChild(sec);
   def.mount(sec, ()=>complete(def));
-  if(def.intro) TTS.say(def.intro);
+  if(def.intro) TTS.say(def.intro,null,def.introWho||'narr');
 }
 function complete(def){
   if(S.done.indexOf(def.id)<0){ S.done.push(def.id); }
@@ -1830,7 +1893,7 @@ function restart(){
   S=defSave(); S.settings=settings; S.started=true; save();
   $('#scene').style.filter='';
   A.sfx('click'); render();
-  TTS.say('Начинаем сказку сначала!');
+  TTS.say('Начинаем сказку сначала!',null,'narr');
 }
 
 /* =========================================================
