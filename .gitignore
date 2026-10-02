@@ -2,6 +2,6 @@
 _test_*.js
 _check.js
 _preview*.js
-_topng*.js
+_3dpreview.js
 _preview/
 node_modules/

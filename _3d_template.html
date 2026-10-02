@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>Мой единорожек — 3D-вид сказки</title>
+<style>
+:root{
+  --ink:#3B4A63; --ink2:#7E8FA8; --card:#FFFFFF;
+  --cw:270px; --ch:175px; --R:580px; --persp:1650px; --lift:-90px;
+  --sh:0 6px 0 rgba(0,0,0,.18), 0 22px 40px rgba(20,30,60,.35);
+  --shg:0 0 0 4px rgba(255,201,77,.95), 0 26px 54px rgba(20,30,60,.45);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;margin:0;overflow:hidden}
+body{
+  font-family:'Comic Sans MS','Trebuchet MS','Segoe UI',system-ui,sans-serif;
+  color:#EAF1FF; background:#101a33; user-select:none; -webkit-user-select:none;
+}
+/* фон-небо */
+#sky{position:fixed;inset:0;z-index:0;
+  background:
+    radial-gradient(900px 520px at 50% 108%, rgba(255,214,150,.30), rgba(255,214,150,0) 70%),
+    radial-gradient(700px 420px at 50% 46%, rgba(160,190,255,.20), rgba(160,190,255,0) 72%),
+    linear-gradient(180deg,#0d1730 0%,#1b2a52 42%,#3a3560 72%,#5b3f63 100%);}
+#stars{position:fixed;inset:0;z-index:1;pointer-events:none}
+#stars i{position:absolute;background:#fff;border-radius:50%;opacity:.75}
+
+/* затемнение по краям: обрезанные карточки уходят в фон, а не режутся об экран */
+#vig{position:fixed;inset:0;z-index:3;pointer-events:none;
+  background:
+    linear-gradient(90deg, rgba(10,17,34,.94) 0%, rgba(10,17,34,0) 13%, rgba(10,17,34,0) 87%, rgba(10,17,34,.94) 100%),
+    linear-gradient(180deg, rgba(10,17,34,.72) 0%, rgba(10,17,34,0) 15%, rgba(10,17,34,0) 74%, rgba(10,17,34,.80) 100%)}
+
+/* сцена */
+#stage{position:fixed;inset:0;z-index:2;perspective:var(--persp);perspective-origin:50% 46%;overflow:hidden}
+#world{position:absolute;left:50%;top:46%;width:0;height:0;
+  transform-style:preserve-3d;
+  transform:rotateX(-7deg) rotateY(calc(var(--ry) * 1deg));}
+
+/* пол-сетка */
+#floor{position:absolute;width:2400px;height:2400px;left:-1200px;top:-1200px;
+  transform:rotateX(90deg) translateZ(-150px);
+  background:
+    repeating-linear-gradient(0deg, rgba(150,190,255,.16) 0 1px, transparent 1px 80px),
+    repeating-linear-gradient(90deg, rgba(150,190,255,.16) 0 1px, transparent 1px 80px);
+  -webkit-mask-image:radial-gradient(closest-side, #000 12%, rgba(0,0,0,.55) 42%, transparent 72%);
+  mask-image:radial-gradient(closest-side, #000 12%, rgba(0,0,0,.55) 42%, transparent 72%);
+  opacity:.85}
+#disc{position:absolute;width:560px;height:560px;left:-280px;top:-280px;border-radius:50%;
+  transform:rotateX(90deg) translateZ(-146px);
+  background:radial-gradient(closest-side, rgba(255,214,150,.30), rgba(255,214,150,0) 72%);}
+
+/* кольцо экранов — поднято, чтобы внизу осталось место героине */
+#ring{position:absolute;transform:translateY(var(--lift));transform-style:preserve-3d}
+
+/* карточки экранов */
+.card{position:absolute;width:var(--cw);height:var(--ch);
+  left:calc(var(--cw) / -2); top:calc(var(--ch) / -2);
+  transform-style:preserve-3d;
+  transform:rotateY(calc(var(--i) * 36deg)) translateZ(var(--R));
+  border-radius:18px;overflow:hidden;cursor:pointer;
+  box-shadow:var(--sh);background:#0e1730;
+  transition:box-shadow .35s ease, filter .35s ease;}
+.card .art{position:absolute;inset:0}
+.card .art svg{width:100%;height:100%;display:block}
+.card .veil{position:absolute;inset:0;background:linear-gradient(180deg,rgba(8,14,30,0) 40%,rgba(8,14,30,.82) 100%)}
+.card .cap{position:absolute;left:0;right:0;bottom:0;padding:8px 10px 9px;
+  display:flex;align-items:center;gap:8px}
+.card .num{flex:0 0 auto;width:26px;height:26px;border-radius:50%;
+  background:rgba(255,255,255,.94);color:#3B4A63;font-weight:800;font-size:14px;
+  display:flex;align-items:center;justify-content:center}
+.card .tt{font-weight:800;font-size:16px;text-shadow:0 2px 6px rgba(0,0,0,.6);line-height:1.15}
+.card .dd{font-size:12px;color:#CFE0FF;margin-top:2px;line-height:1.2}
+.card.front{box-shadow:var(--shg);filter:saturate(1.12) brightness(1.06)}
+.card:not(.front){filter:saturate(.82) brightness(.82)}
+
+/* героиня — на подиуме внизу, ПЕРЕД кольцом, лицом к зрителю */
+#hero{position:absolute;left:-150px;top:-150px;width:300px;height:300px;
+  transform-style:preserve-3d;
+  transform:translateY(190px) translateZ(300px) rotateY(calc(var(--ry) * -1deg));}
+#hero .glow{position:absolute;left:50%;top:76%;width:280px;height:64px;margin-left:-140px;
+  border-radius:50%;
+  background:radial-gradient(closest-side, rgba(255,235,190,.45), rgba(255,235,190,0) 74%);}
+#hero .uni{position:absolute;inset:0}
+#hero .uni svg{width:100%;height:100%;display:block;overflow:visible;
+  filter:drop-shadow(0 18px 26px rgba(10,18,40,.55))}
+
+/* верхняя панель */
+#bar{position:fixed;left:0;right:0;top:0;z-index:6;display:flex;align-items:center;gap:12px;
+  padding:12px 16px;background:linear-gradient(180deg,rgba(8,14,30,.72),rgba(8,14,30,0))}
+#bar h1{margin:0;font-size:clamp(17px,2.6vw,25px);font-weight:800;letter-spacing:.2px;
+  text-shadow:0 2px 10px rgba(0,0,0,.5)}
+#bar .sp{flex:1}
+.btn{min-height:46px;padding:8px 16px;font-family:inherit;font-weight:800;font-size:15px;
+  border:none;border-radius:16px;background:rgba(255,255,255,.14);color:#EAF1FF;cursor:pointer;
+  backdrop-filter:blur(6px);box-shadow:0 3px 0 rgba(0,0,0,.25);transition:transform .08s,background .2s}
+.btn:hover{background:rgba(255,255,255,.22)}
+.btn:active{transform:translateY(3px);box-shadow:0 1px 0 rgba(0,0,0,.25)}
+.btn.on{background:linear-gradient(180deg,#FFE7A3,#FFC94D);color:#5A3E00}
+
+/* инфо-панель */
+#info{position:fixed;left:16px;bottom:16px;z-index:6;max-width:min(430px,calc(100vw - 32px));
+  background:rgba(12,20,40,.72);backdrop-filter:blur(10px);border-radius:20px;padding:14px 16px;
+  box-shadow:0 16px 34px rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.10)}
+#info .k{font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;color:#9FB6E0}
+#info .t{font-size:21px;font-weight:800;margin:3px 0 4px}
+#info .d{font-size:15px;color:#CFE0FF;line-height:1.35}
+#info .hint{font-size:12.5px;color:#8FA6CE;margin-top:9px}
+#hint2{position:fixed;right:16px;bottom:16px;z-index:6;font-size:13px;color:#9FB6E0;
+  text-align:right;line-height:1.5;max-width:230px}
+
+@media (max-width:760px){
+  :root{--cw:186px;--ch:120px;--R:400px;--persp:1080px;--lift:-56px}
+  #hero{left:-104px;top:-104px;width:208px;height:208px;transform:translateY(150px) translateZ(210px) rotateY(calc(var(--ry) * -1deg))}
+  #hero .glow{width:190px;height:44px;margin-left:-95px}
+  .card .tt{font-size:13px}.card .dd{display:none}.card .num{width:21px;height:21px;font-size:12px}
+  #hint2{display:none}
+  #info{left:10px;right:10px;bottom:10px;max-width:none}
+  #info .t{font-size:18px}#info .d{font-size:13.5px}
+}
+</style>
+</head>
+<body>
+<div id="sky"></div>
+<div id="stars"></div>
+<div id="vig"></div>
+
+<div id="stage">
+  <div id="world">
+    <div id="floor"></div>
+    <div id="disc"></div>
+    <div id="ring"></div>
+    <div id="hero"><div class="glow"></div><div class="uni"></div></div>
+  </div>
+</div>
+
+<div id="bar">
+  <h1>Мой единорожек · 3D-вид сказки</h1>
+  <div class="sp"></div>
+  <button class="btn" id="bPrev">◀</button>
+  <button class="btn on" id="bAuto">Авто-вращение</button>
+  <button class="btn" id="bNext">▶</button>
+</div>
+
+<div id="info">
+  <div class="k" id="iK">Экран 1 из 10</div>
+  <div class="t" id="iT">Знакомство</div>
+  <div class="d" id="iD">Погладить единорожку 5 раз</div>
+  <div class="hint" id="iH">Крути мышью или пальцем · нажми на экран, чтобы приблизить</div>
+</div>
+<div id="hint2">← → — перелистывать<br>Пробел — пауза вращения<br>Клик по экрану — показать</div>
+
+<script>
+/* =========================================================
+   ЧАСТЬ 1. ИСКУССТВО — то же самое, что в игре
+   (вставляется скриптом сборки _build3d.js прямо из index.html)
+   ========================================================= */
+//__ART__
+
+/* =========================================================
+   ЧАСТЬ 2. 3D-ВИД
+   ========================================================= */
+const SCENES3D=[
+  {n:1,  s:'morning',   t:'Знакомство', d:'Погладить единорожку 5 раз'},
+  {n:2,  s:'meadow',    t:'Завтрак',    d:'Выбрать правильную еду 3 раза'},
+  {n:3,  s:'lake',      t:'Купание',    d:'Стереть 6 пятен и смыть водой'},
+  {n:4,  s:'glade',     t:'Грива',      d:'Расчесать 7 прядок и заплести косичку'},
+  {n:5,  s:'forest',    t:'Прогулка',   d:'Пройти 6 точек тропы по порядку'},
+  {n:6,  s:'rainbow',   t:'Украшение',  d:'Выбрать 3 украшения из 8'},
+  {n:7,  s:'dandelion', t:'Игры',       d:'Лопнуть 8 мыльных пузырей'},
+  {n:8,  s:'night',     t:'Сон',        d:'Одеяло, свет, 5 звёздочек колыбельной'},
+  {n:9,  s:'burrow',    t:'Друзья',     d:'Накормить Пушка и Синичку'},
+  {n:10, s:'party',     t:'Праздник',   d:'Салют и диплом заботы'}
+];
+const STEP=360/SCENES3D.length;   /* 36° между экранами */
+
+const world=document.getElementById('world');
+const ring=document.getElementById('ring');
+
+/* небо: звёзды */
+(function stars(){
+  const box=document.getElementById('stars');
+  let h='';
+  for(let i=0;i<130;i++){
+    const sz=(Math.random()*2+0.8).toFixed(1);
+    h+='<i style="left:'+(Math.random()*100).toFixed(2)+'%;top:'+(Math.random()*72).toFixed(2)+'%;'
+      +'width:'+sz+'px;height:'+sz+'px;opacity:'+(0.25+Math.random()*0.6).toFixed(2)+'"></i>';
+  }
+  box.innerHTML=h;
+})();
+
+/* карточки экранов */
+const cards=[];
+SCENES3D.forEach((sc,i)=>{
+  const c=document.createElement('div');
+  c.className='card';
+  c.style.setProperty('--i', i);
+  c.innerHTML='<div class="art">'+svgWrap(SCENES[sc.s]('c3d'+i+'_'),'0 0 800 520')+'</div>'
+    +'<div class="veil"></div>'
+    +'<div class="cap"><div class="num">'+sc.n+'</div>'
+    +'<div><div class="tt">'+sc.t+'</div><div class="dd">'+sc.d+'</div></div></div>';
+  c.addEventListener('click',()=>focusCard(i));
+  ring.appendChild(c);
+  cards.push(c);
+});
+
+/* героиня на подиуме внизу */
+document.getElementById('hero').querySelector('.uni').innerHTML=
+  svgWrap(unicornSVG({mood:'happy',mane:'braid',dirt:false,clean:true,
+                      acc:['bow','flower','star'],hearts:true}),'0 0 260 230');
+
+/* --- вращение --- */
+let ry=0, target=0, auto=true, dragging=false, dragX=0, dragStart=0, front=-1;
+const info={k:document.getElementById('iK'),t:document.getElementById('iT'),d:document.getElementById('iD')};
+
+function norm(a){ return ((a%360)+360)%360; }
+function focusCard(i){
+  auto=false; document.getElementById('bAuto').classList.remove('on');
+  const want=-i*STEP;
+  const d=((want-ry)%360+540)%360-180;      /* кратчайший путь, без прокрутки через весь круг */
+  target=ry+d;
+}
+function step(dir){
+  const cur=front<0?0:front;
+  focusCard((cur+dir+SCENES3D.length)%SCENES3D.length);
+}
+function setInfo(i){
+  if(i===front) return;
+  front=i;
+  cards.forEach((c,k)=>c.classList.toggle('front',k===i));
+  const sc=SCENES3D[i];
+  info.k.textContent='Экран '+sc.n+' из '+SCENES3D.length;
+  info.t.textContent=sc.t;
+  info.d.textContent=sc.d;
+}
+
+function frame(){
+  if(!dragging){
+    if(auto) target+=0.09;
+    ry+=(target-ry)*0.10;
+  }
+  world.style.setProperty('--ry', ry.toFixed(2));
+  /* кто сейчас к зрителю лицом */
+  let best=0,bd=1e9;
+  for(let i=0;i<cards.length;i++){
+    const a=Math.abs(((norm(i*STEP+ry)+180)%360)-180);   /* 0 = смотрит на зрителя */
+    if(a<bd){ bd=a; best=i; }
+  }
+  setInfo(best);
+  requestAnimationFrame(frame);
+}
+
+/* --- ввод --- */
+const stage=document.getElementById('stage');
+stage.addEventListener('pointerdown',e=>{
+  dragging=true; dragX=e.clientX; dragStart=ry;
+  stage.setPointerCapture&&stage.setPointerCapture(e.pointerId);
+});
+stage.addEventListener('pointermove',e=>{
+  if(!dragging) return;
+  ry=target=dragStart+(e.clientX-dragX)*0.32;
+});
+['pointerup','pointercancel','pointerleave'].forEach(ev=>
+  stage.addEventListener(ev,()=>{ dragging=false; }));
+stage.addEventListener('wheel',e=>{
+  auto=false; document.getElementById('bAuto').classList.remove('on');
+  target+=e.deltaY*0.06; e.preventDefault();
+},{passive:false});
+
+document.getElementById('bPrev').onclick=()=>step(-1);
+document.getElementById('bNext').onclick=()=>step(1);
+document.getElementById('bAuto').onclick=e=>{
+  auto=!auto; e.target.classList.toggle('on',auto);
+  if(auto) target=ry;
+};
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowLeft')  step(-1);
+  if(e.key==='ArrowRight') step(1);
+  if(e.key===' '){ e.preventDefault(); document.getElementById('bAuto').click(); }
+});
+
+frame();
+
+if(typeof module!=='undefined'&&module.exports) module.exports={SCENES3D,STEP};
+</script>
+</body>
+</html>
