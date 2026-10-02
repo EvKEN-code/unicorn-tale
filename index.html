@@ -1910,12 +1910,28 @@ function restart(){
   A.sfx('click'); render();
   TTS.say('Начинаем сказку сначала!',null,'narr');
 }
+/* Переход на конкретный экран из 3D-вида: index.html#s=5
+   Прогресс до этого экрана считаем пройденным, а единорожку приводим
+   в то состояние, в каком она была бы, если идти по сказке по порядку. */
+function applyHash(){
+  const m=/[#&?]s=(\d+)/.exec(location.hash||'');
+  if(!m) return;
+  const n=clamp(parseInt(m[1],10)||1,1,10);
+  S.done=[]; for(let i=1;i<n;i++) S.done.push(i);
+  S.screen=n; S.started=true;
+  S.clean = n>3;                          /* на купании (3) она ещё грязная */
+  S.mane  = n>4 ? 'braid' : 'messy';      /* гриву заплетают на экране 4 */
+  if(n>6 && !S.acc.length) S.acc=['bow','flower','star'];
+  save();
+  try{ history.replaceState(null,'',location.pathname+location.search); }catch(e){}
+}
 
 /* =========================================================
    M. ИНИЦИАЛИЗАЦИЯ
    ========================================================= */
 function init(){
   load();
+  applyHash();
   TTS.init();
   updateTop();
   $('#btnMusic').onclick=()=>{

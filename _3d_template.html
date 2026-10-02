@@ -72,6 +72,12 @@ body{
   display:flex;align-items:center;justify-content:center}
 .card .tt{font-weight:800;font-size:16px;text-shadow:0 2px 6px rgba(0,0,0,.6);line-height:1.15}
 .card .dd{font-size:12px;color:#CFE0FF;margin-top:2px;line-height:1.2}
+/* кнопка запуска — появляется только у экрана, который смотрит на зрителя */
+.card .go{flex:0 0 auto;margin-left:auto;width:30px;height:30px;border-radius:50%;
+  background:linear-gradient(180deg,#FFE7A3,#FFC94D);color:#5A3E00;font-size:13px;
+  display:flex;align-items:center;justify-content:center;padding-left:3px;
+  opacity:0;transform:scale(.6);transition:opacity .3s ease,transform .3s ease}
+.card.front .go{opacity:1;transform:scale(1)}
 .card.front{box-shadow:var(--shg);filter:saturate(1.12) brightness(1.06)}
 .card:not(.front){filter:saturate(.82) brightness(.82)}
 
@@ -98,6 +104,10 @@ body{
 .btn:hover{background:rgba(255,255,255,.22)}
 .btn:active{transform:translateY(3px);box-shadow:0 1px 0 rgba(0,0,0,.25)}
 .btn.on{background:linear-gradient(180deg,#FFE7A3,#FFC94D);color:#5A3E00}
+.btn.play{background:linear-gradient(180deg,#FFE7A3,#FFC94D);color:#5A3E00;box-shadow:0 3px 0 #D89A22;
+  font-size:16px;padding:8px 20px}
+.btn.play:hover{filter:brightness(1.07)}
+.btn.play.big{width:100%;margin-top:11px}
 
 /* инфо-панель */
 #info{position:fixed;left:16px;bottom:16px;z-index:6;max-width:min(430px,calc(100vw - 32px));
@@ -138,6 +148,7 @@ body{
 <div id="bar">
   <h1>Мой единорожек · 3D-вид сказки</h1>
   <div class="sp"></div>
+  <button class="btn play" id="bPlay">▶ Играть</button>
   <button class="btn" id="bPrev">◀</button>
   <button class="btn on" id="bAuto">Авто-вращение</button>
   <button class="btn" id="bNext">▶</button>
@@ -147,9 +158,10 @@ body{
   <div class="k" id="iK">Экран 1 из 10</div>
   <div class="t" id="iT">Знакомство</div>
   <div class="d" id="iD">Погладить единорожку 5 раз</div>
-  <div class="hint" id="iH">Крути мышью или пальцем · нажми на экран, чтобы приблизить</div>
+  <button class="btn play big" id="bPlayHere">▶ Начать игру с этого экрана</button>
+  <div class="hint" id="iH">Крути мышью или пальцем. Нажми на экран, чтобы приблизить, и ещё раз — чтобы начать с него.</div>
 </div>
-<div id="hint2">← → — перелистывать<br>Пробел — пауза вращения<br>Клик по экрану — показать</div>
+<div id="hint2">← → — перелистывать<br>Пробел — пауза вращения<br>Двойной клик по экрану — начать с него</div>
 
 <script>
 /* =========================================================
@@ -199,8 +211,11 @@ SCENES3D.forEach((sc,i)=>{
   c.innerHTML='<div class="art">'+svgWrap(SCENES[sc.s]('c3d'+i+'_'),'0 0 800 520')+'</div>'
     +'<div class="veil"></div>'
     +'<div class="cap"><div class="num">'+sc.n+'</div>'
-    +'<div><div class="tt">'+sc.t+'</div><div class="dd">'+sc.d+'</div></div></div>';
-  c.addEventListener('click',()=>focusCard(i));
+    +'<div><div class="tt">'+sc.t+'</div><div class="dd">'+sc.d+'</div></div>'
+    +'<div class="go" title="Начать игру с этого экрана">▶</div></div>';
+  /* первый клик — приблизить, второй (по уже переднему) — запустить игру */
+  c.addEventListener('click',()=>{ if(i===front) startGame(i); else focusCard(i); });
+  c.addEventListener('dblclick',()=>startGame(i));
   ring.appendChild(c);
   cards.push(c);
 });
@@ -280,9 +295,16 @@ document.addEventListener('keydown',e=>{
   if(e.key===' '){ e.preventDefault(); document.getElementById('bAuto').click(); }
 });
 
+/* --- запуск самой игры --- */
+const GAME='index.html';
+function gameUrl(i){ return GAME+'#s='+((i|0)+1); }   /* игра поймёт #s=N и откроет нужный экран */
+function startGame(i){ location.href=gameUrl(i); }
+document.getElementById('bPlay').onclick=()=>{ location.href=GAME; };
+document.getElementById('bPlayHere').onclick=()=>{ if(front>=0) startGame(front); };
+
 frame();
 
-if(typeof module!=='undefined'&&module.exports) module.exports={SCENES3D,STEP};
+if(typeof module!=='undefined'&&module.exports) module.exports={SCENES3D,STEP,gameUrl};
 </script>
 </body>
 </html>
