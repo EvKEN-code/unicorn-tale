@@ -54,19 +54,28 @@ body{
 /* кольцо экранов — поднято, чтобы внизу осталось место героине */
 #ring{position:absolute;transform:translateY(var(--lift));transform-style:preserve-3d}
 
-/* карточки экранов */
+/* карточки экранов.
+   ВАЖНО: у .card НЕТ overflow:hidden — он «сплющивает» 3D и убивает смещение героя.
+   Обрезаем фон отдельно, на .art. Герой при этом может чуть вылезать за рамку — это и даёт объём. */
 .card{position:absolute;width:var(--cw);height:var(--ch);
   left:calc(var(--cw) / -2); top:calc(var(--ch) / -2);
   transform-style:preserve-3d;
   transform:rotateY(calc(var(--i) * 36deg)) translateZ(var(--R));
-  border-radius:18px;overflow:hidden;cursor:pointer;
+  border-radius:18px;cursor:pointer;
   box-shadow:var(--sh);background:#0e1730;
   transition:box-shadow .35s ease, filter .35s ease;}
-.card .art{position:absolute;inset:0}
+.card .art{position:absolute;inset:0;border-radius:18px;overflow:hidden}
 .card .art svg{width:100%;height:100%;display:block}
-.card .veil{position:absolute;inset:0;background:linear-gradient(180deg,rgba(8,14,30,0) 40%,rgba(8,14,30,.82) 100%)}
+/* герой — отдельный слой БЛИЖЕ к зрителю: при повороте кольца он смещается относительно фона,
+   и глаз читает это как глубину. Это не 3D-модель, но объём в движении виден. */
+.card .hero3{position:absolute;left:50%;bottom:15%;width:var(--hw,48%);
+  transform:translateX(-50%) translateZ(48px);transform-origin:50% 100%;
+  filter:drop-shadow(0 12px 16px rgba(6,12,26,.6))}
+.card .hero3 svg{width:100%;height:auto;display:block;overflow:visible}
+.card .veil{position:absolute;inset:0;border-radius:18px;
+  background:linear-gradient(180deg,rgba(8,14,30,0) 42%,rgba(8,14,30,.86) 100%)}
 .card .cap{position:absolute;left:0;right:0;bottom:0;padding:8px 10px 9px;
-  display:flex;align-items:center;gap:8px}
+  display:flex;align-items:center;gap:8px;transform:translateZ(54px)}
 .card .num{flex:0 0 auto;width:26px;height:26px;border-radius:50%;
   background:rgba(255,255,255,.94);color:#3B4A63;font-weight:800;font-size:14px;
   display:flex;align-items:center;justify-content:center}
@@ -187,6 +196,26 @@ const SCENES3D=[
 ];
 const STEP=360/SCENES3D.length;   /* 36° между экранами */
 
+/* Кто стоит в каждой сцене. hw — ширина слоя героя в % от карточки (зависит от пропорций
+   viewBox: чем шире картинка, тем шире слой). Состояние единорожки совпадает с тем,
+   что происходит на экране: на купании грязная, после гривы — с косичкой и т.д. */
+const UNI=(o)=>unicornSVG(Object.assign({mood:'calm',mane:'messy',dirt:false,clean:false},o||{}));
+const HERO_ART=[
+  {hw:'48%', vb:'0 0 260 230', make:()=>UNI({mood:'calm'})},
+  {hw:'48%', vb:'0 0 260 230', make:()=>UNI({mood:'hungry'})},
+  {hw:'48%', vb:'0 0 260 230', make:()=>UNI({mood:'calm',dirt:true,clean:false})},
+  {hw:'48%', vb:'0 0 260 230', make:()=>UNI({mood:'calm',mane:'messy'})},
+  {hw:'48%', vb:'0 0 260 230', make:()=>UNI({mood:'happy',mane:'brushed',clean:true})},
+  {hw:'48%', vb:'0 0 260 230', make:()=>UNI({mood:'happy',mane:'braid',clean:true,acc:['bow','flower','star']})},
+  {hw:'60%', vb:'0 0 330 235', make:()=>UNI({mood:'happy',mane:'braid',clean:true,acc:['bow','flower','star']})
+      +'<g transform="translate(238,24) scale(0.52)">'+butterflySVG()+'</g>'},
+  {hw:'48%', vb:'0 0 260 230', make:()=>UNI({mood:'sleepy',mane:'braid',clean:true,acc:['bow']})+blanketSVG()},
+  {hw:'78%', vb:'0 0 430 235', make:()=>'<g transform="translate(-38,0)">'+UNI({mood:'happy',mane:'braid',clean:true})+'</g>'
+      +'<g transform="translate(222,110) scale(0.7)">'+bunnySVG({carrot:true})+'</g>'
+      +'<g transform="translate(330,125) scale(0.6)">'+birdSVG()+'</g>'},
+  {hw:'48%', vb:'0 0 260 230', make:()=>UNI({mood:'happy',mane:'braid',clean:true,acc:['bow','flower','star'],hearts:true})}
+];
+
 const world=document.getElementById('world');
 const ring=document.getElementById('ring');
 
@@ -208,8 +237,11 @@ SCENES3D.forEach((sc,i)=>{
   const c=document.createElement('div');
   c.className='card';
   c.style.setProperty('--i', i);
+  const ha=HERO_ART[i];
+  c.style.setProperty('--hw', ha.hw);
   c.innerHTML='<div class="art">'+svgWrap(SCENES[sc.s]('c3d'+i+'_'),'0 0 800 520')+'</div>'
     +'<div class="veil"></div>'
+    +'<div class="hero3">'+svgWrap(ha.make(), ha.vb)+'</div>'
     +'<div class="cap"><div class="num">'+sc.n+'</div>'
     +'<div><div class="tt">'+sc.t+'</div><div class="dd">'+sc.d+'</div></div>'
     +'<div class="go" title="Начать игру с этого экрана">▶</div></div>';

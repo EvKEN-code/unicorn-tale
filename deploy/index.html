@@ -1385,6 +1385,17 @@ function setScene(name){
   node.innerHTML='<svg viewBox="0 0 800 520" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">'+fn(p)+'</svg>';
 }
 
+function blanketSVG(){
+  return '<g>'
+    +'<path d="M62 168 q66 -26 136 0 q14 6 12 24 q-2 16 -20 16 h-120 q-18 0 -20 -16 q-2 -18 12 -24z" fill="#C9B6FF"/>'
+    +'<path d="M62 178 q66 -22 136 0 q10 4 10 14 q-2 14 -18 14 h-120 q-16 0 -18 -14 q0 -10 10 -14z" fill="#A88FE8"/>'
+    +'<circle cx="104" cy="176" r="5" fill="#FFFFFF" opacity=".75"/>'
+    +'<circle cx="150" cy="170" r="5" fill="#FFFFFF" opacity=".75"/>'
+    +'<circle cx="176" cy="180" r="4" fill="#FFFFFF" opacity=".65"/>'
+    +'<path d="M70 196 q60 -12 120 0" stroke="#8F76D8" stroke-width="2" fill="none" opacity=".6"/>'
+    +'</g>';
+}
+
 /* =========================================================
    K. ЭКРАНЫ СКАЗКИ
    ========================================================= */
@@ -1830,17 +1841,6 @@ const SCREENS = [
       root.appendChild(box); root.appendChild(hint); root.appendChild(row); root.appendChild(card);
     } }
 ];
-
-function blanketSVG(){
-  return '<g>'
-    +'<path d="M62 168 q66 -26 136 0 q14 6 12 24 q-2 16 -20 16 h-120 q-18 0 -20 -16 q-2 -18 12 -24z" fill="#C9B6FF"/>'
-    +'<path d="M62 178 q66 -22 136 0 q10 4 10 14 q-2 14 -18 14 h-120 q-16 0 -18 -14 q0 -10 10 -14z" fill="#A88FE8"/>'
-    +'<circle cx="104" cy="176" r="5" fill="#FFFFFF" opacity=".75"/>'
-    +'<circle cx="150" cy="170" r="5" fill="#FFFFFF" opacity=".75"/>'
-    +'<circle cx="176" cy="180" r="4" fill="#FFFFFF" opacity=".65"/>'
-    +'<path d="M70 196 q60 -12 120 0" stroke="#8F76D8" stroke-width="2" fill="none" opacity=".6"/>'
-    +'</g>';
-}
 
 /* =========================================================
    L. НАВИГАЦИЯ И ФИНАЛ
